@@ -10,9 +10,12 @@
     <nav class="navbar">
         <div class="container nav-content">
             <a href="/" class="logo">安居租房</a>
-            <div class="nav-links">
+            <button class="hamburger" id="hamburger" onclick="toggleMobileNav()">
+                <span></span><span></span><span></span>
+            </button>
+            <div class="nav-links" id="navLinks">
                 <a href="/" class="active">首页</a>
-                <a href="#" onclick="showSection('appointments-section')">我的预约</a>
+                <a href="#" onclick="showSection('appointments-section');closeMobileNav()">我的预约</a>
                 <div class="user-menu" id="userMenu">
                     <span id="navUser"></span>
                     <div class="dropdown">
@@ -37,31 +40,38 @@
     </section>
 
     <section class="filters">
-        <div class="container filter-row">
-            <div class="filter-group">
-                <label>户型</label>
-                <select id="filterRooms" onchange="searchHouses()">
-                    <option value="">不限</option>
-                    <option value="1">一室</option>
-                    <option value="2">两室</option>
-                    <option value="3">三室</option>
-                </select>
+        <div class="container">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label>户型</label>
+                    <select id="filterRooms" onchange="searchHouses()">
+                        <option value="">不限</option>
+                        <option value="1">一室</option>
+                        <option value="2">两室</option>
+                        <option value="3">三室</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>类型</label>
+                    <select id="filterType" onchange="searchHouses()">
+                        <option value="">不限</option>
+                    </select>
+                </div>
+                <button class="btn-reset" onclick="resetFilters()">重置</button>
             </div>
-            <div class="filter-group">
+            <div class="price-presets">
                 <label>价格</label>
-                <div class="price-range">
-                    <input type="number" id="filterMinPrice" placeholder="最低" onchange="searchHouses()">
-                    <span>-</span>
-                    <input type="number" id="filterMaxPrice" placeholder="最高" onchange="searchHouses()">
+                <div class="presets-row">
+                    <button class="price-preset" data-min="" data-max="">不限</button>
+                    <button class="price-preset" data-min="" data-max="3000">3000以下</button>
+                    <button class="price-preset" data-min="3000" data-max="5000">3000-5000</button>
+                    <button class="price-preset" data-min="5000" data-max="8000">5000-8000</button>
+                    <button class="price-preset" data-min="8000" data-max="">8000以上</button>
+                    <input type="number" id="filterMinPrice" placeholder="最低价" class="price-input">
+                    <span class="price-sep">-</span>
+                    <input type="number" id="filterMaxPrice" placeholder="最高价" class="price-input" onchange="searchHouses()">
                 </div>
             </div>
-            <div class="filter-group">
-                <label>类型</label>
-                <select id="filterType" onchange="searchHouses()">
-                    <option value="">不限</option>
-                </select>
-            </div>
-            <button class="btn-reset" onclick="resetFilters()">重置筛选</button>
         </div>
     </section>
 
@@ -71,7 +81,10 @@
     </main>
 
     <section class="container" id="appointments-section" style="display:none">
-        <h2 style="margin:30px 0 15px">我的预约看房</h2>
+        <div class="section-title">
+            <h2>我的预约看房</h2>
+            <button class="btn-back" onclick="showSection('mainContent')">← 返回房源列表</button>
+        </div>
         <div id="appointmentsList"></div>
     </section>
 

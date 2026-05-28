@@ -119,7 +119,9 @@ def create_appointment():
 def my_appointments():
     db = get_db()
     appointments = db.execute('''
-        SELECT a.*, h.title as house_title, h.address as house_address, h.price as house_price
+        SELECT a.*, h.title as house_title, h.address as house_address,
+               h.price as house_price, h.house_type, h.area,
+               h.orientation, h.decoration
         FROM appointments a
         JOIN houses h ON a.house_id = h.id
         WHERE a.user_id = ?
