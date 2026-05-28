@@ -27,13 +27,12 @@ function showToast(msg) {
 
 function renderPagination(data, loadFn) {
     if (data.pages <= 1) return '';
-    let html = '<div class="pagination">';
+    let html = '';
     html += `<button ${data.page <= 1 ? 'disabled' : ''} onclick="${loadFn}(${data.page - 1})">上一页</button>`;
     for (let i = 1; i <= data.pages; i++) {
         html += `<button class="${i === data.page ? 'active' : ''}" onclick="${loadFn}(${i})">${i}</button>`;
     }
     html += `<button ${data.page >= data.pages ? 'disabled' : ''} onclick="${loadFn}(${data.page + 1})">下一页</button>`;
-    html += '</div>';
     return html;
 }
 

@@ -240,6 +240,15 @@ function initPricePresets() {
             searchHouses();
         });
     });
+
+    ['filterMinPrice', 'filterMaxPrice'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            document.querySelectorAll('.price-preset').forEach(
+                b => b.classList.remove('active')
+            );
+            searchHouses();
+        });
+    });
 }
 
 function showSection(id) {

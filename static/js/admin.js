@@ -47,7 +47,7 @@ async function loadDashboard() {
 }
 
 async function loadAdminHouses(page) {
-    if (page) housesPage = page;
+    if (page !== undefined) housesPage = page;
     const data = await api('/admin/api/houses?page=' + housesPage);
     const houses = data.items;
     const el = document.getElementById('adminHousesList');
@@ -136,12 +136,13 @@ async function deleteHouse(id) {
     if (!confirm('确定要删除这个房源吗？相关的预约也会被删除。')) return;
     await api('/admin/api/houses/' + id, { method: 'DELETE' });
     showToast('房源已删除');
+    housesPage = 1;
     loadAdminHouses();
     loadDashboard();
 }
 
 async function loadUsers(page) {
-    if (page) usersPage = page;
+    if (page !== undefined) usersPage = page;
     const data = await api('/admin/api/users?page=' + usersPage);
     const users = data.items;
     const el = document.getElementById('usersList');
@@ -177,12 +178,13 @@ async function deleteUser(id) {
     if (!confirm('确定要删除这个用户吗？')) return;
     await api('/admin/api/users/' + id, { method: 'DELETE' });
     showToast('用户已删除');
+    usersPage = 1;
     loadUsers();
     loadDashboard();
 }
 
 async function loadAdminAppointments(page) {
-    if (page) aptPage = page;
+    if (page !== undefined) aptPage = page;
     const data = await api('/admin/api/appointments?page=' + aptPage);
     const appointments = data.items;
     const el = document.getElementById('adminAppointmentsList');
