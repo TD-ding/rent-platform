@@ -4,11 +4,6 @@ from . import get_db
 from .auth import login_required
 
 
-def _house_img_url(house):
-    images = json.loads(house.get('images', '[]'))
-    return images[0] if images else None
-
-
 main_bp = Blueprint('main', __name__)
 
 
@@ -173,7 +168,7 @@ def add_favorite(house_id):
         )
         db.commit()
     except Exception:
-        pass
+        return jsonify({'message': '已收藏'})
     return jsonify({'message': '已收藏'})
 
 

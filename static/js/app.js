@@ -37,8 +37,6 @@ async function checkAuth() {
 
 async function loadFavorites() {
     try {
-        const data = await api('/auth/me');
-        if (!data.user) return;
         const favs = await api('/api/favorites');
         favoritesSet = new Set(favs.map(f => f.id));
     } catch {

@@ -176,6 +176,12 @@ def update_house(house_id):
 def delete_house(house_id):
     db = get_db()
     db.execute(
+        'DELETE FROM favorites WHERE house_id = ?', (house_id,)
+    )
+    db.execute(
+        'DELETE FROM inquiries WHERE house_id = ?', (house_id,)
+    )
+    db.execute(
         'DELETE FROM appointments WHERE house_id = ?', (house_id,)
     )
     db.execute('DELETE FROM houses WHERE id = ?', (house_id,))
