@@ -6,6 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     checkAuth();
     loadHouses();
     loadHouseTypes();
+    initPricePresets();
 });
 
 async function checkAuth() {
@@ -22,7 +23,9 @@ async function checkAuth() {
                 link.href = '/admin/dashboard';
                 link.textContent = '管理后台';
                 link.className = 'admin-link';
-                document.querySelector('.nav-links').insertBefore(link, document.getElementById('userMenu'));
+                document.querySelector('.nav-links').insertBefore(
+                    link, document.getElementById('userMenu')
+                );
             }
         }
     } catch {
@@ -62,7 +65,7 @@ async function register(e) {
 
 async function logout() {
     await api('/auth/logout', { method: 'POST' });
-    location.reload();
+    window.location.href = '/';
 }
 
 async function loadHouses(page = 1) {
@@ -81,13 +84,14 @@ async function loadHouses(page = 1) {
 
     const data = await api('/api/houses?' + params.toString());
     renderHouses(data.houses);
-    document.getElementById('pagination').innerHTML = renderPagination(data, 'loadHouses');
+    document.getElementById('pagination').innerHTML =
+        renderPagination(data, 'loadHouses');
 }
 
 function renderHouses(houses) {
     const grid = document.getElementById('housesGrid');
     if (!houses.length) {
-        grid.innerHTML = '<div style="text-align:center;padding:60px;color:var(--color-text-muted);grid-column:1/-1"><p style="font-size:48px;margin-bottom:16px">🔍</p><p>暂无符合条件的房源</p></div>';
+        grid.innerHTML = '<div class="empty-state"><p class="empty-icon">🔍</p><p>暂无符合条件的房源</p></div>';
         return;
     }
     grid.innerHTML = houses.map(h => `
@@ -125,11 +129,15 @@ function getGradient(id) {
 
 async function showHouseDetail(id) {
     const h = await api('/api/houses/' + id);
+    const pricePerSqm = h.area ? (h.price / h.area).toFixed(1) : null;
+    const createdDate = h.created_at ? h.created_at.split(' ')[0] : '';
     document.getElementById('houseDetail').innerHTML = `
         <div class="detail-img" style="background:linear-gradient(135deg,${getGradient(h.id)})">${houseIcons[h.id % houseIcons.length]}</div>
         <div class="detail-header">
             <h2>${escHtml(h.title)}</h2>
-            <div class="detail-price">${h.price.toLocaleString()} <small>元/月</small></div>
+            <div class="detail-price">${h.price.toLocaleString()} <small>元/月</small>
+                ${pricePerSqm ? `<span class="price-per-sqm">约 ${pricePerSqm} 元/㎡/月</span>` : ''}
+            </div>
         </div>
         <div class="detail-grid">
             <div class="detail-item"><div class="label">户型</div><div class="value">${escHtml(h.house_type || '未填写')}</div></div>
@@ -138,6 +146,8 @@ async function showHouseDetail(id) {
             <div class="detail-item"><div class="label">朝向</div><div class="value">${escHtml(h.orientation || '未填写')}</div></div>
             <div class="detail-item"><div class="label">装修</div><div class="value">${escHtml(h.decoration || '未填写')}</div></div>
             <div class="detail-item"><div class="label">地址</div><div class="value">${escHtml(h.address)}</div></div>
+            ${createdDate ? `<div class="detail-item"><div class="label">发布时间</div><div class="value">${createdDate}</div></div>` : ''}
+            ${h.rooms ? `<div class="detail-item"><div class="label">房间数</div><div class="value">${h.rooms} 间</div></div>` : ''}
         </div>
         <div class="detail-desc"><h3>房源描述</h3><p>${escHtml(h.description || '暂无描述')}</p></div>
         ${(h.facilities || []).length ? `<div class="detail-facilities"><h3>配套设施</h3><div>${h.facilities.map(f => `<span>${escHtml(f)}</span>`).join('')}</div></div>` : ''}
@@ -167,26 +177,78 @@ async function submitAppointment(e) {
     showToast(data.message);
     closeModal('appointmentModal');
     document.getElementById('appointmentForm').reset();
+    showSection('appointments-section');
 }
 
 async function loadMyAppointments() {
     const data = await api('/api/appointments');
     const el = document.getElementById('appointmentsList');
     if (!data.length) {
-        el.innerHTML = '<p style="color:var(--color-text-muted);padding:20px">暂无预约记录</p>';
+        el.innerHTML = '<div class="empty-state"><p class="empty-icon">📋</p><p>暂无预约记录</p></div>';
         return;
     }
     el.innerHTML = data.map(a => `
-        <div class="appointment-card">
-            <div class="appointment-info">
-                <h4>${escHtml(a.house_title)}</h4>
-                <p>📍 ${escHtml(a.house_address)} | ${a.house_price?.toLocaleString()}元/月</p>
-                <p>预约时间：${a.appointment_time} | 联系电话：${escHtml(a.contact_phone)}</p>
-                ${a.message ? `<p>留言：${escHtml(a.message)}</p>` : ''}
+        <div class="apt-card">
+            <div class="apt-card-body">
+                <div class="apt-house-info">
+                    <h4>${escHtml(a.house_title)}</h4>
+                    <div class="apt-house-tags">
+                        ${a.house_type ? `<span class="apt-tag">${escHtml(a.house_type)}</span>` : ''}
+                        ${a.area ? `<span class="apt-tag">${a.area}㎡</span>` : ''}
+                        ${a.orientation ? `<span class="apt-tag">${escHtml(a.orientation)}</span>` : ''}
+                    </div>
+                    <p class="apt-meta">📍 ${escHtml(a.house_address)}</p>
+                    <p class="apt-meta">💰 ${a.house_price?.toLocaleString()}元/月</p>
+                </div>
+                <div class="apt-detail">
+                    <div class="apt-detail-row">
+                        <span class="apt-label">预约时间</span>
+                        <span>${a.appointment_time}</span>
+                    </div>
+                    <div class="apt-detail-row">
+                        <span class="apt-label">联系人</span>
+                        <span>${escHtml(a.contact_name)}</span>
+                    </div>
+                    <div class="apt-detail-row">
+                        <span class="apt-label">联系电话</span>
+                        <span>${escHtml(a.contact_phone)}</span>
+                    </div>
+                    ${a.message ? `<div class="apt-detail-row"><span class="apt-label">留言</span><span>${escHtml(a.message)}</span></div>` : ''}
+                </div>
             </div>
-            <span class="status-badge status-${a.status}">${STATUS_MAP[a.status] || a.status}</span>
+            <div class="apt-status-bar">
+                <span class="status-badge status-${a.status}">
+                    ${STATUS_MAP[a.status] || a.status}
+                </span>
+                <span class="apt-time">提交于 ${a.created_at || ''}</span>
+            </div>
         </div>
     `).join('');
+}
+
+function initPricePresets() {
+    document.querySelectorAll('.price-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.getElementById('filterMinPrice').value =
+                btn.dataset.min || '';
+            document.getElementById('filterMaxPrice').value =
+                btn.dataset.max || '';
+            document.querySelectorAll('.price-preset').forEach(
+                b => b.classList.remove('active')
+            );
+            btn.classList.add('active');
+            searchHouses();
+        });
+    });
+
+    ['filterMinPrice', 'filterMaxPrice'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            document.querySelectorAll('.price-preset').forEach(
+                b => b.classList.remove('active')
+            );
+            searchHouses();
+        });
+    });
 }
 
 function showSection(id) {
@@ -219,11 +281,21 @@ function resetFilters() {
     document.getElementById('filterMaxPrice').value = '';
     document.getElementById('filterRooms').value = '';
     document.getElementById('filterType').value = '';
+    document.querySelectorAll('.price-preset').forEach(
+        b => b.classList.remove('active')
+    );
     loadHouses(1);
 }
 
 function showModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function toggleMobileNav() {
+    document.getElementById('navLinks').classList.toggle('open');
+}
+function closeMobileNav() {
+    document.getElementById('navLinks').classList.remove('open');
+}
 
 document.querySelectorAll('.modal').forEach(m => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
