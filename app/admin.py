@@ -1,7 +1,7 @@
 import csv
 import io
 import json
-from flask import Blueprint, request, jsonify, render_template, Response
+from flask import Blueprint, request, jsonify, render_template, Response, stream_with_context
 from . import get_db
 from .auth import admin_required
 
@@ -253,7 +253,17 @@ def update_appointment_status(apt_id):
     return jsonify({'message': '状态已更新'})
 
 
-# --- CSV Export ---
+def _csv_stream(header, rows, row_fn):
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(header)
+    yield buf.getvalue()
+    for row in rows:
+        buf = io.StringIO()
+        writer = csv.writer(buf)
+        writer.writerow(row_fn(row))
+        yield buf.getvalue()
+
 
 @admin_bp.route('/api/export/users', methods=['GET'])
 @admin_required
@@ -263,21 +273,19 @@ def export_users():
         'SELECT id, username, role, phone, email, created_at '
         'FROM users ORDER BY created_at DESC'
     ).fetchall()
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow(['ID', '用户名', '角色', '手机', '邮箱', '注册时间'])
-    for u in users:
-        writer.writerow([
-            u['id'], u['username'], u['role'],
-            u['phone'] or '', u['email'] or '', u['created_at']
-        ])
-    buf.seek(0)
+
+    def generate():
+        yield from _csv_stream(
+            ['ID', '用户名', '角色', '手机', '邮箱', '注册时间'],
+            users,
+            lambda u: [u['id'], u['username'], u['role'],
+                       u['phone'] or '', u['email'] or '', u['created_at']]
+        )
+
     return Response(
-        buf.getvalue(),
+        stream_with_context(generate()),
         mimetype='text/csv',
-        headers={
-            'Content-Disposition': 'attachment; filename=users.csv'
-        }
+        headers={'Content-Disposition': 'attachment; filename=users.csv'}
     )
 
 
@@ -295,31 +303,28 @@ def export_appointments():
         JOIN users u ON a.user_id = u.id
         ORDER BY a.created_at DESC
     ''').fetchall()
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow([
-        'ID', '用户', '房源', '地址', '联系人', '电话',
-        '预约时间', '状态', '留言', '提交时间'
-    ])
-    for a in appointments:
-        status_map = {
-            'pending': '待确认', 'confirmed': '已确认',
-            'cancelled': '已取消', 'completed': '已完成'
-        }
-        writer.writerow([
-            a['id'], a['username'], a['house_title'],
-            a['house_address'], a['contact_name'],
-            a['contact_phone'], a['appointment_time'],
-            status_map.get(a['status'], a['status']),
-            a['message'] or '', a['created_at']
-        ])
-    buf.seek(0)
+
+    status_map = {
+        'pending': '待确认', 'confirmed': '已确认',
+        'cancelled': '已取消', 'completed': '已完成'
+    }
+
+    def generate():
+        yield from _csv_stream(
+            ['ID', '用户', '房源', '地址', '联系人', '电话',
+             '预约时间', '状态', '留言', '提交时间'],
+            appointments,
+            lambda a: [a['id'], a['username'], a['house_title'],
+                       a['house_address'], a['contact_name'],
+                       a['contact_phone'], a['appointment_time'],
+                       status_map.get(a['status'], a['status']),
+                       a['message'] or '', a['created_at']]
+        )
+
     return Response(
-        buf.getvalue(),
+        stream_with_context(generate()),
         mimetype='text/csv',
-        headers={
-            'Content-Disposition': 'attachment; filename=appointments.csv'
-        }
+        headers={'Content-Disposition': 'attachment; filename=appointments.csv'}
     )
 
 

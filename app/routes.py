@@ -42,9 +42,10 @@ def list_houses():
         sql += ' AND house_type = ?'
         params.append(house_type)
 
-    sql += ' ORDER BY created_at DESC'
+    where_clause = sql.replace('SELECT *', 'SELECT COUNT(*)', 1)
+    total = db.execute(where_clause, params).fetchone()[0]
 
-    total = db.execute('SELECT COUNT(*) FROM (' + sql + ')', params).fetchone()[0]
+    sql += ' ORDER BY created_at DESC'
 
     offset = (page - 1) * per_page
     sql += ' LIMIT ? OFFSET ?'

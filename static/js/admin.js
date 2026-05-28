@@ -256,10 +256,22 @@ async function loadAdminInquiries(page) {
     </table>` + renderPagination(data, 'loadAdminInquiries');
 }
 
-async function replyInquiry(inqId, currentReply) {
-    const reply = prompt('回复内容：', currentReply);
-    if (reply === null || !reply.trim()) return;
+function replyInquiry(inqId, currentReply) {
+    document.getElementById('replyInquiryId').value = inqId;
+    document.getElementById('replyContent').value = currentReply || '';
+    document.getElementById('replyModal').style.display = 'flex';
+}
+
+function closeReplyModal() {
+    document.getElementById('replyModal').style.display = 'none';
+}
+
+async function submitReply() {
+    const inqId = document.getElementById('replyInquiryId').value;
+    const reply = document.getElementById('replyContent').value.trim();
+    if (!reply) return;
     await api(`/admin/api/inquiries/${inqId}/reply`, { method: 'PUT', body: JSON.stringify({ reply }) });
     showToast('回复成功');
+    closeReplyModal();
     loadAdminInquiries();
 }
