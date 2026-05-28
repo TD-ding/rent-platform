@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>安居租房 - 找到理想住所</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container nav-content">
+            <a href="/" class="logo">安居租房</a>
+            <div class="nav-links">
+                <a href="/" class="active">首页</a>
+                <a href="#" onclick="showSection('appointments-section')">我的预约</a>
+                <div class="user-menu" id="userMenu">
+                    <span id="navUser"></span>
+                    <div class="dropdown">
+                        <a href="#" id="loginBtn" onclick="showModal('loginModal')">登录</a>
+                        <a href="#" id="registerBtn" onclick="showModal('registerModal')">注册</a>
+                        <a href="#" id="logoutBtn" onclick="logout()" style="display:none">退出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <h1>找到你的理想住所</h1>
+            <p>精选优质房源，轻松开启新生活</p>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="搜索区域、小区、地铁站..." onkeyup="if(event.key==='Enter') searchHouses()">
+                <button onclick="searchHouses()">搜索</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="filters">
+        <div class="container filter-row">
+            <div class="filter-group">
+                <label>户型</label>
+                <select id="filterRooms" onchange="searchHouses()">
+                    <option value="">不限</option>
+                    <option value="1">一室</option>
+                    <option value="2">两室</option>
+                    <option value="3">三室</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>价格</label>
+                <div class="price-range">
+                    <input type="number" id="filterMinPrice" placeholder="最低" onchange="searchHouses()">
+                    <span>-</span>
+                    <input type="number" id="filterMaxPrice" placeholder="最高" onchange="searchHouses()">
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>类型</label>
+                <select id="filterType" onchange="searchHouses()">
+                    <option value="">不限</option>
+                </select>
+            </div>
+            <button class="btn-reset" onclick="resetFilters()">重置筛选</button>
+        </div>
+    </section>
+
+    <main class="container" id="mainContent">
+        <div id="housesGrid" class="houses-grid"></div>
+        <div id="pagination" class="pagination"></div>
+    </main>
+
+    <section class="container" id="appointments-section" style="display:none">
+        <h2 style="margin:30px 0 15px">我的预约看房</h2>
+        <div id="appointmentsList"></div>
+    </section>
+
+    <div id="houseDetailModal" class="modal">
+        <div class="modal-content modal-lg">
+            <span class="close" onclick="closeModal('houseDetailModal')">&times;</span>
+            <div id="houseDetail"></div>
+        </div>
+    </div>
+
+    <div id="appointmentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('appointmentModal')">&times;</span>
+            <h2>预约看房</h2>
+            <form id="appointmentForm" onsubmit="submitAppointment(event)">
+                <input type="hidden" id="aptHouseId">
+                <div class="form-group">
+                    <label>联系人</label>
+                    <input type="text" id="aptName" required>
+                </div>
+                <div class="form-group">
+                    <label>联系电话</label>
+                    <input type="tel" id="aptPhone" required>
+                </div>
+                <div class="form-group">
+                    <label>预约时间</label>
+                    <input type="datetime-local" id="aptTime" required>
+                </div>
+                <div class="form-group">
+                    <label>留言（可选）</label>
+                    <textarea id="aptMessage" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn-primary">提交预约</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('loginModal')">&times;</span>
+            <h2>登录</h2>
+            <form onsubmit="login(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="loginUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="loginPassword" required>
+                </div>
+                <button type="submit" class="btn-primary">登录</button>
+                <p class="form-footer">还没有账号？<a href="#" onclick="closeModal('loginModal');showModal('registerModal')">立即注册</a></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="registerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('registerModal')">&times;</span>
+            <h2>注册</h2>
+            <form onsubmit="register(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="regUsername" required minlength="3">
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="regPassword" required minlength="6">
+                </div>
+                <div class="form-group">
+                    <label>手机号</label>
+                    <input type="tel" id="regPhone">
+                </div>
+                <div class="form-group">
+                    <label>邮箱</label>
+                    <input type="email" id="regEmail">
+                </div>
+                <button type="submit" class="btn-primary">注册</button>
+                <p class="form-footer">已有账号？<a href="#" onclick="closeModal('registerModal');showModal('loginModal')">去登录</a></p>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <footer>
+        <div class="container">
+            <p>安居租房平台 &copy; 2026 | 管理员登录: admin / admin123</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

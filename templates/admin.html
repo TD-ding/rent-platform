@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 - 安居租房</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <nav class="admin-nav">
+        <div class="container nav-content">
+            <a href="/" class="logo">安居租房</a>
+            <div class="nav-links">
+                <span class="nav-tabs">
+                    <a href="#" class="tab active" data-tab="dashboard">数据概览</a>
+                    <a href="#" class="tab" data-tab="houses">房源管理</a>
+                    <a href="#" class="tab" data-tab="users">用户管理</a>
+                    <a href="#" class="tab" data-tab="appointments">预约管理</a>
+                </span>
+                <a href="/">返回前台</a>
+                <a href="#" onclick="adminLogout()">退出</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container admin-main">
+        <section id="dashboard-tab" class="tab-content active">
+            <h2>数据概览</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="statHouses">0</h3>
+                    <p>房源总数</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="statUsers">0</h3>
+                    <p>注册用户</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="statAppointments">0</h3>
+                    <p>预约总数</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="statPending">0</h3>
+                    <p>待处理预约</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="houses-tab" class="tab-content">
+            <div class="section-header">
+                <h2>房源管理</h2>
+                <button class="btn-primary" onclick="showHouseForm()">添加房源</button>
+            </div>
+            <div id="houseFormContainer" style="display:none">
+                <div class="form-card">
+                    <h3 id="houseFormTitle">添加房源</h3>
+                    <form id="houseForm" onsubmit="saveHouse(event)">
+                        <input type="hidden" id="houseId">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>标题 *</label>
+                                <input type="text" id="hTitle" required>
+                            </div>
+                            <div class="form-group">
+                                <label>地址 *</label>
+                                <input type="text" id="hAddress" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>月租金（元）*</label>
+                                <input type="number" id="hPrice" required min="0">
+                            </div>
+                            <div class="form-group">
+                                <label>面积（㎡）</label>
+                                <input type="number" id="hArea">
+                            </div>
+                            <div class="form-group">
+                                <label>房间数</label>
+                                <input type="number" id="hRooms" min="1">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>户型</label>
+                                <input type="text" id="hHouseType" placeholder="如：两室一厅">
+                            </div>
+                            <div class="form-group">
+                                <label>楼层</label>
+                                <input type="text" id="hFloor" placeholder="如：5/18">
+                            </div>
+                            <div class="form-group">
+                                <label>朝向</label>
+                                <input type="text" id="hOrientation" placeholder="如：南北通透">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>装修</label>
+                                <select id="hDecoration">
+                                    <option value="">请选择</option>
+                                    <option>毛坯</option>
+                                    <option>简装修</option>
+                                    <option>中装修</option>
+                                    <option>精装修</option>
+                                    <option>豪华装修</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>状态</label>
+                                <select id="hStatus">
+                                    <option value="available">可租</option>
+                                    <option value="rented">已租</option>
+                                    <option value="offline">下架</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>描述</label>
+                            <textarea id="hDescription" rows="3"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>配套设施（逗号分隔）</label>
+                            <input type="text" id="hFacilities" placeholder="如：空调, 洗衣机, 冰箱">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">保存</button>
+                            <button type="button" class="btn-secondary" onclick="hideHouseForm()">取消</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="adminHousesList"></div>
+        </section>
+
+        <section id="users-tab" class="tab-content">
+            <h2>用户管理</h2>
+            <div id="usersList"></div>
+        </section>
+
+        <section id="appointments-tab" class="tab-content">
+            <h2>预约管理</h2>
+            <div id="adminAppointmentsList"></div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>
