@@ -1,5 +1,5 @@
 import json
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 from . import get_db
 from .auth import admin_required
 
@@ -16,7 +16,10 @@ def dashboard():
 @admin_required
 def list_users():
     db = get_db()
-    users = db.execute('SELECT id, username, role, phone, email, created_at FROM users ORDER BY created_at DESC').fetchall()
+    users = db.execute(
+        'SELECT id, username, role, phone, email, created_at '
+        'FROM users ORDER BY created_at DESC'
+    ).fetchall()
     return jsonify([dict(u) for u in users])
 
 
@@ -84,8 +87,9 @@ def update_house(house_id):
 
     fields = []
     params = []
-    for key in ['title', 'description', 'address', 'price', 'area', 'rooms',
-                 'house_type', 'floor_info', 'orientation', 'decoration', 'status']:
+    for key in ['title', 'description', 'address', 'price', 'area',
+                'rooms', 'house_type', 'floor_info', 'orientation',
+                'decoration', 'status']:
         if key in data:
             fields.append(f'{key} = ?')
             params.append(data[key])

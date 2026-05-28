@@ -105,8 +105,11 @@ def create_appointment():
         return jsonify({'error': '房源不存在或已下架'}), 404
 
     db.execute(
-        'INSERT INTO appointments (user_id, house_id, contact_name, contact_phone, appointment_time, message) VALUES (?, ?, ?, ?, ?, ?)',
-        (session['user_id'], house_id, contact_name, contact_phone, appointment_time, message)
+        'INSERT INTO appointments '
+        '(user_id, house_id, contact_name, contact_phone, '
+        'appointment_time, message) VALUES (?, ?, ?, ?, ?, ?)',
+        (session['user_id'], house_id, contact_name,
+         contact_phone, appointment_time, message)
     )
     db.commit()
     return jsonify({'message': '预约成功'}), 201
@@ -117,7 +120,7 @@ def create_appointment():
 def my_appointments():
     db = get_db()
     appointments = db.execute('''
-        SELECT a.*, h.title as house_title, h.address as house_address, h.price as house_price, h.image_url
+        SELECT a.*, h.title as house_title, h.address as house_address, h.price as house_price
         FROM appointments a
         JOIN houses h ON a.house_id = h.id
         WHERE a.user_id = ?

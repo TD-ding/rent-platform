@@ -8,19 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHouseTypes();
 });
 
-async function api(url, options = {}) {
-    const res = await fetch(url, {
-        headers: { 'Content-Type': 'application/json', ...options.headers },
-        ...options
-    });
-    const data = await res.json();
-    if (!res.ok) {
-        showToast(data.error || '操作失败', 'error');
-        throw new Error(data.error);
-    }
-    return data;
-}
-
 async function checkAuth() {
     try {
         const data = await api('/auth/me');
@@ -170,12 +157,12 @@ async function showHouseDetail(id) {
         </div>
         <div class="detail-desc"><h3>房源描述</h3><p>${escHtml(h.description || '暂无描述')}</p></div>
         ${(h.facilities || []).length ? `<div class="detail-facilities"><h3>配套设施</h3><div>${h.facilities.map(f => `<span>${escHtml(f)}</span>`).join('')}</div></div>` : ''}
-        <button class="btn-book" onclick="bookHouse(${h.id}, '${escHtml(h.title)}')">预约看房</button>
+        <button class="btn-book" onclick="bookHouse(${h.id})">预约看房</button>
     `;
     showModal('houseDetailModal');
 }
 
-function bookHouse(houseId, houseTitle) {
+function bookHouse(houseId) {
     closeModal('houseDetailModal');
     document.getElementById('aptHouseId').value = houseId;
     showModal('appointmentModal');
@@ -216,9 +203,7 @@ async function loadMyAppointments() {
                     <p>预约时间：${a.appointment_time} | 联系电话：${escHtml(a.contact_phone)}</p>
                     ${a.message ? `<p>留言：${escHtml(a.message)}</p>` : ''}
                 </div>
-                <span class="status-badge status-${a.status}">
-                    ${({pending:'待确认',confirmed:'已确认',cancelled:'已取消',completed:'已完成'})[a.status] || a.status}
-                </span>
+                <span class="status-badge status-${a.status}">${STATUS_MAP[a.status] || a.status}</span>
             </div>
         `).join('');
     } catch {}
@@ -263,17 +248,3 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 document.querySelectorAll('.modal').forEach(m => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
 });
-
-function escHtml(s) {
-    if (!s) return '';
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-}
-
-function showToast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2500);
-}

@@ -86,6 +86,16 @@ def init_db():
         );
     ''')
 
+    db.executescript('''
+        CREATE INDEX IF NOT EXISTS idx_houses_status ON houses(status);
+        CREATE INDEX IF NOT EXISTS idx_houses_rooms ON houses(rooms);
+        CREATE INDEX IF NOT EXISTS idx_houses_price ON houses(price);
+        CREATE INDEX IF NOT EXISTS idx_houses_type ON houses(house_type);
+        CREATE INDEX IF NOT EXISTS idx_appointments_user ON appointments(user_id);
+        CREATE INDEX IF NOT EXISTS idx_appointments_house ON appointments(house_id);
+        CREATE INDEX IF NOT EXISTS idx_appointments_status ON appointments(status);
+    ''')
+
     # Seed admin user if not exists
     cursor = db.execute('SELECT COUNT(*) FROM users WHERE role = "admin"')
     if cursor.fetchone()[0] == 0:
@@ -99,21 +109,42 @@ def init_db():
     cursor = db.execute('SELECT COUNT(*) FROM houses')
     if cursor.fetchone()[0] == 0:
         sample_houses = [
-            ('阳光花园精装两室一厅', '精装修，家电齐全，拎包入住。紧邻地铁口，交通便利。', '北京市朝阳区阳光花园小区3号楼501', 5500, 85, 2, '两室一厅', '5/18', '南北通透', '精装修',
+            ('阳光花园精装两室一厅',
+             '精装修，家电齐全，拎包入住。紧邻地铁口，交通便利。',
+             '北京市朝阳区阳光花园小区3号楼501', 5500, 85, 2,
+             '两室一厅', '5/18', '南北通透', '精装修',
              '["空调","洗衣机","冰箱","热水器","宽带"]'),
-            ('望京SOHO一居室', '现代简约风格，全新家电家具，24小时安保。', '北京市朝阳区望京SOHO T1-1208', 4800, 55, 1, '一室一厅', '12/28', '朝南', '精装修',
+            ('望京SOHO一居室',
+             '现代简约风格，全新家电家具，24小时安保。',
+             '北京市朝阳区望京SOHO T1-1208', 4800, 55, 1,
+             '一室一厅', '12/28', '朝南', '精装修',
              '["空调","洗衣机","冰箱","热水器","宽带","衣柜"]'),
-            ('海淀学区房三居室', '临近多所名校，适合陪读家庭，小区环境优美。', '北京市海淀区中关村南大街22号', 8500, 120, 3, '三室一厅', '6/6', '南北通透', '中装修',
+            ('海淀学区房三居室',
+             '临近多所名校，适合陪读家庭，小区环境优美。',
+             '北京市海淀区中关村南大街22号', 8500, 120, 3,
+             '三室一厅', '6/6', '南北通透', '中装修',
              '["空调","洗衣机","冰箱","热水器","宽带","衣柜","书桌"]'),
-            ('通州地铁旁两居室', '紧邻八通线，新装修，首次出租，价格优惠。', '北京市通州区梨园地铁站旁翠屏北里', 3200, 78, 2, '两室一厅', '3/22', '朝南', '简装修',
+            ('通州地铁旁两居室',
+             '紧邻八通线，新装修，首次出租，价格优惠。',
+             '北京市通州区梨园地铁站旁翠屏北里', 3200, 78, 2,
+             '两室一厅', '3/22', '朝南', '简装修',
              '["空调","洗衣机","热水器"]'),
-            ('西直门商务公寓', '精装公寓式住宅，适合商务人士，拎包入住。', '北京市西城区西直门外大街18号', 6800, 65, 1, '一室一厅', '15/20', '朝东', '豪华装修',
+            ('西直门商务公寓',
+             '精装公寓式住宅，适合商务人士，拎包入住。',
+             '北京市西城区西直门外大街18号', 6800, 65, 1,
+             '一室一厅', '15/20', '朝东', '豪华装修',
              '["空调","洗衣机","冰箱","热水器","宽带","衣柜","微波炉","烤箱"]'),
-            ('丰台万达广场旁两居', '紧邻万达广场，生活便利，小区绿化好。', '北京市丰台区丰台万达广场南侧', 4200, 90, 2, '两室两厅', '8/25', '南北通透', '中装修',
+            ('丰台万达广场旁两居',
+             '紧邻万达广场，生活便利，小区绿化好。',
+             '北京市丰台区丰台万达广场南侧', 4200, 90, 2,
+             '两室两厅', '8/25', '南北通透', '中装修',
              '["空调","洗衣机","冰箱","热水器","宽带"]'),
         ]
         db.executemany(
-            'INSERT INTO houses (title, description, address, price, area, rooms, house_type, floor_info, orientation, decoration, facilities) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+            'INSERT INTO houses '
+            '(title, description, address, price, area, rooms, '
+            'house_type, floor_info, orientation, decoration, facilities) '
+            'VALUES (?,?,?,?,?,?,?,?,?,?,?)',
             sample_houses
         )
 

@@ -3,19 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initTabs();
 });
 
-async function api(url, options = {}) {
-    const res = await fetch(url, {
-        headers: { 'Content-Type': 'application/json', ...options.headers },
-        ...options
-    });
-    const data = await res.json();
-    if (!res.ok) {
-        showToast(data.error || '操作失败');
-        throw new Error(data.error);
-    }
-    return data;
-}
-
 async function checkAdminAuth() {
     try {
         const data = await api('/auth/me');
@@ -75,7 +62,7 @@ async function loadAdminHouses() {
                 <td>${escHtml(h.address)}</td>
                 <td>${h.price.toLocaleString()}元/月</td>
                 <td>${escHtml(h.house_type || '-')}</td>
-                <td><span class="status-badge status-${h.status}">${({available:'可租',rented:'已租',offline:'下架'})[h.status] || h.status}</span></td>
+                <td><span class="status-badge status-${h.status}">${HOUSE_STATUS_MAP[h.status] || h.status}</span></td>
                 <td>
                     <button class="btn-sm btn-edit" onclick="editHouse(${h.id})">编辑</button>
                     <button class="btn-sm btn-delete" onclick="deleteHouse(${h.id})">删除</button>
@@ -216,7 +203,7 @@ async function loadAdminAppointments() {
                 <td>${escHtml(a.contact_name)}</td>
                 <td>${escHtml(a.contact_phone)}</td>
                 <td>${a.appointment_time}</td>
-                <td><span class="status-badge status-${a.status}">${({pending:'待确认',confirmed:'已确认',cancelled:'已取消',completed:'已完成'})[a.status] || a.status}</span></td>
+                <td><span class="status-badge status-${a.status}">${STATUS_MAP[a.status] || a.status}</span></td>
                 <td>
                     ${a.status === 'pending' ? `
                         <button class="btn-sm btn-confirm" onclick="updateAptStatus(${a.id}, 'confirmed')">确认</button>
@@ -240,18 +227,4 @@ async function updateAptStatus(id, status) {
 
 function adminLogout() {
     fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = '/');
-}
-
-function escHtml(s) {
-    if (!s) return '';
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-}
-
-function showToast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 2500);
 }
