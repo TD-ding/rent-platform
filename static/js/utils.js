@@ -25,5 +25,17 @@ function showToast(msg) {
     setTimeout(() => el.classList.remove('show'), 2500);
 }
 
+function renderPagination(data, loadFn) {
+    if (data.pages <= 1) return '';
+    let html = '<div class="pagination">';
+    html += `<button ${data.page <= 1 ? 'disabled' : ''} onclick="${loadFn}(${data.page - 1})">上一页</button>`;
+    for (let i = 1; i <= data.pages; i++) {
+        html += `<button class="${i === data.page ? 'active' : ''}" onclick="${loadFn}(${i})">${i}</button>`;
+    }
+    html += `<button ${data.page >= data.pages ? 'disabled' : ''} onclick="${loadFn}(${data.page + 1})">下一页</button>`;
+    html += '</div>';
+    return html;
+}
+
 const STATUS_MAP = {pending: '待确认', confirmed: '已确认', cancelled: '已取消', completed: '已完成'};
 const HOUSE_STATUS_MAP = {available: '可租', rented: '已租', offline: '下架'};

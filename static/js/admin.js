@@ -1,3 +1,5 @@
+let housesPage = 1, usersPage = 1, aptPage = 1;
+
 document.addEventListener('DOMContentLoaded', () => {
     checkAdminAuth();
     initTabs();
@@ -34,24 +36,22 @@ function initTabs() {
 
 async function loadDashboard() {
     try {
-        const [houses, users, appointments] = await Promise.all([
-            api('/admin/api/all-houses'),
-            api('/admin/api/users'),
-            api('/admin/api/appointments')
-        ]);
-        document.getElementById('statHouses').textContent = houses.length;
-        document.getElementById('statUsers').textContent = users.length;
-        document.getElementById('statAppointments').textContent = appointments.length;
-        document.getElementById('statPending').textContent = appointments.filter(a => a.status === 'pending').length;
+        const s = await api('/admin/api/stats');
+        document.getElementById('statHouses').textContent = s.houses;
+        document.getElementById('statUsers').textContent = s.users;
+        document.getElementById('statAppointments').textContent = s.appointments;
+        document.getElementById('statPending').textContent = s.pending;
     } catch {
         // 仪表盘加载失败不应阻断页面
     }
 }
 
-async function loadAdminHouses() {
-    const houses = await api('/admin/api/all-houses');
+async function loadAdminHouses(page) {
+    if (page) housesPage = page;
+    const data = await api('/admin/api/houses?page=' + housesPage);
+    const houses = data.items;
     const el = document.getElementById('adminHousesList');
-    if (!houses.length) {
+    if (!data.total) {
         el.innerHTML = '<p style="color:var(--color-text-muted);padding:20px">暂无房源</p>';
         return;
     }
@@ -71,7 +71,7 @@ async function loadAdminHouses() {
                 </td>
             </tr>
         `).join('')}</tbody>
-    </table>`;
+    </table>` + renderPagination(data, 'loadAdminHouses');
 }
 
 function showHouseForm(house) {
@@ -98,9 +98,8 @@ function hideHouseForm() {
 }
 
 async function editHouse(id) {
-    const houses = await api('/admin/api/all-houses');
-    const house = houses.find(h => h.id === id);
-    if (house) showHouseForm(house);
+    const house = await api('/admin/api/houses/' + id);
+    showHouseForm(house);
 }
 
 async function saveHouse(e) {
@@ -141,8 +140,10 @@ async function deleteHouse(id) {
     loadDashboard();
 }
 
-async function loadUsers() {
-    const users = await api('/admin/api/users');
+async function loadUsers(page) {
+    if (page) usersPage = page;
+    const data = await api('/admin/api/users?page=' + usersPage);
+    const users = data.items;
     const el = document.getElementById('usersList');
     el.innerHTML = `<table class="data-table">
         <thead><tr><th>ID</th><th>用户名</th><th>角色</th><th>手机</th><th>邮箱</th><th>注册时间</th><th>操作</th></tr></thead>
@@ -162,7 +163,7 @@ async function loadUsers() {
                 </td>
             </tr>
         `).join('')}</tbody>
-    </table>`;
+    </table>` + renderPagination(data, 'loadUsers');
 }
 
 async function toggleRole(userId, currentRole) {
@@ -180,10 +181,12 @@ async function deleteUser(id) {
     loadDashboard();
 }
 
-async function loadAdminAppointments() {
-    const appointments = await api('/admin/api/appointments');
+async function loadAdminAppointments(page) {
+    if (page) aptPage = page;
+    const data = await api('/admin/api/appointments?page=' + aptPage);
+    const appointments = data.items;
     const el = document.getElementById('adminAppointmentsList');
-    if (!appointments.length) {
+    if (!data.total) {
         el.innerHTML = '<p style="color:var(--color-text-muted);padding:20px">暂无预约</p>';
         return;
     }
@@ -207,7 +210,7 @@ async function loadAdminAppointments() {
                 </td>
             </tr>
         `).join('')}</tbody>
-    </table>`;
+    </table>` + renderPagination(data, 'loadAdminAppointments');
 }
 
 async function updateAptStatus(id, status) {

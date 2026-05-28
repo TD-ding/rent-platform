@@ -81,7 +81,7 @@ async function loadHouses(page = 1) {
 
     const data = await api('/api/houses?' + params.toString());
     renderHouses(data.houses);
-    renderPagination(data);
+    document.getElementById('pagination').innerHTML = renderPagination(data, 'loadHouses');
 }
 
 function renderHouses(houses) {
@@ -112,18 +112,6 @@ function renderHouses(houses) {
             </div>
         </div>
     `).join('');
-}
-
-function renderPagination(data) {
-    const el = document.getElementById('pagination');
-    if (data.pages <= 1) { el.innerHTML = ''; return; }
-    let html = '';
-    html += `<button ${data.page <= 1 ? 'disabled' : ''} onclick="loadHouses(${data.page - 1})">上一页</button>`;
-    for (let i = 1; i <= data.pages; i++) {
-        html += `<button class="${i === data.page ? 'active' : ''}" onclick="loadHouses(${i})">${i}</button>`;
-    }
-    html += `<button ${data.page >= data.pages ? 'disabled' : ''} onclick="loadHouses(${data.page + 1})">下一页</button>`;
-    el.innerHTML = html;
 }
 
 function getGradient(id) {
