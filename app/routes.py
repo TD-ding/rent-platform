@@ -1,5 +1,5 @@
 import json
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify, session, render_template
 from . import get_db
 from .auth import login_required
 
@@ -8,7 +8,6 @@ main_bp = Blueprint('main', __name__)
 
 @main_bp.route('/')
 def index():
-    from flask import render_template
     return render_template('index.html')
 
 

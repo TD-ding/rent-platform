@@ -1,17 +1,20 @@
 import sqlite3
 import os
-from flask import Flask, g, current_app
-from config import BASE_DIR
+from flask import Flask, g, current_app, jsonify
+from config import BASE_DIR, SECRET_KEY, DEBUG
 
 
 def create_app():
     app = Flask(__name__,
                 template_folder=os.path.join(BASE_DIR, 'templates'),
                 static_folder=os.path.join(BASE_DIR, 'static'))
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+    app.config['SECRET_KEY'] = SECRET_KEY
     app.config['DATABASE'] = os.path.join(BASE_DIR, 'rental.db')
+    app.config['DEBUG'] = DEBUG
 
     app.teardown_appcontext(close_db)
+    app.register_error_handler(404, lambda e: (jsonify({'error': '资源不存在'}), 404))
+    app.register_error_handler(500, lambda e: (jsonify({'error': '服务器内部错误'}), 500))
 
     from .routes import main_bp
     from .auth import auth_bp
