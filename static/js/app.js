@@ -1,4 +1,5 @@
 let currentPage = 1;
+let favoritesSet = new Set();
 
 const houseIcons = ['🏠', '🏢', '🏡', '🏘️', '🏗️', '🌆'];
 
@@ -27,9 +28,19 @@ async function checkAuth() {
                     link, document.getElementById('userMenu')
                 );
             }
+            loadFavorites();
         }
     } catch {
         // 未登录状态，静默忽略
+    }
+}
+
+async function loadFavorites() {
+    try {
+        const favs = await api('/api/favorites');
+        favoritesSet = new Set(favs.map(f => f.id));
+    } catch {
+        // ignore
     }
 }
 
@@ -44,7 +55,8 @@ async function login(e) {
     });
     showToast(data.message);
     closeModal('loginModal');
-    checkAuth();
+    await checkAuth();
+    loadHouses();
 }
 
 async function register(e) {
@@ -88,19 +100,33 @@ async function loadHouses(page = 1) {
         renderPagination(data, 'loadHouses');
 }
 
+function getHouseImage(h) {
+    const images = h.images || [];
+    return images.length > 0 ? images[0] : null;
+}
+
 function renderHouses(houses) {
     const grid = document.getElementById('housesGrid');
     if (!houses.length) {
         grid.innerHTML = '<div class="empty-state"><p class="empty-icon">🔍</p><p>暂无符合条件的房源</p></div>';
         return;
     }
-    grid.innerHTML = houses.map(h => `
-        <div class="house-card" onclick="showHouseDetail(${h.id})">
-            <div class="house-img" style="background:linear-gradient(135deg,${getGradient(h.id)})">
-                ${houseIcons[h.id % houseIcons.length]}
+    grid.innerHTML = houses.map(h => {
+        const img = getHouseImage(h);
+        const bgStyle = img
+            ? `background-image:url('${escHtml(img)}');background-size:cover;background-position:center`
+            : `background:linear-gradient(135deg,${getGradient(h.id)})`;
+        const icon = img ? '' : houseIcons[h.id % houseIcons.length];
+        const isFav = favoritesSet.has(h.id);
+        return `
+        <div class="house-card">
+            <div class="house-img" style="${bgStyle}" onclick="showHouseDetail(${h.id})">
+                ${icon}
                 <div class="price-tag">${h.price.toLocaleString()}<small> 元/月</small></div>
+                <button class="fav-btn ${isFav ? 'fav-active' : ''}"
+                    onclick="event.stopPropagation();toggleFavorite(${h.id},this)">${isFav ? '❤' : '🤍'}</button>
             </div>
-            <div class="house-info">
+            <div class="house-info" onclick="showHouseDetail(${h.id})">
                 <h3>${escHtml(h.title)}</h3>
                 <p class="address">📍 ${escHtml(h.address)}</p>
                 <div class="house-tags">
@@ -114,8 +140,30 @@ function renderHouses(houses) {
                     <span>${(h.facilities || []).length}项设施</span>
                 </div>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
+}
+
+async function toggleFavorite(houseId, btn) {
+    try {
+        await api('/auth/me');
+    } catch {
+        showModal('loginModal');
+        return;
+    }
+    if (favoritesSet.has(houseId)) {
+        await api('/api/favorites/' + houseId, { method: 'DELETE' });
+        favoritesSet.delete(houseId);
+        btn.textContent = '🤍';
+        btn.classList.remove('fav-active');
+        showToast('已取消收藏');
+    } else {
+        await api('/api/favorites/' + houseId, { method: 'POST' });
+        favoritesSet.add(houseId);
+        btn.textContent = '❤';
+        btn.classList.add('fav-active');
+        showToast('已收藏');
+    }
 }
 
 function getGradient(id) {
@@ -131,8 +179,18 @@ async function showHouseDetail(id) {
     const h = await api('/api/houses/' + id);
     const pricePerSqm = h.area ? (h.price / h.area).toFixed(1) : null;
     const createdDate = h.created_at ? h.created_at.split(' ')[0] : '';
+    const isFav = favoritesSet.has(h.id);
+    const img = getHouseImage(h);
+    const bgStyle = img
+        ? `background-image:url('${escHtml(img)}');background-size:cover;background-position:center`
+        : `background:linear-gradient(135deg,${getGradient(h.id)})`;
+    const icon = img ? '' : houseIcons[h.id % houseIcons.length];
+
     document.getElementById('houseDetail').innerHTML = `
-        <div class="detail-img" style="background:linear-gradient(135deg,${getGradient(h.id)})">${houseIcons[h.id % houseIcons.length]}</div>
+        <div class="detail-img" style="${bgStyle}">${icon}
+            <button class="fav-btn fav-detail ${isFav ? 'fav-active' : ''}"
+                onclick="toggleFavorite(${h.id},this)">${isFav ? '❤ 已收藏' : '🤍 收藏'}</button>
+        </div>
         <div class="detail-header">
             <h2>${escHtml(h.title)}</h2>
             <div class="detail-price">${h.price.toLocaleString()} <small>元/月</small>
@@ -151,9 +209,58 @@ async function showHouseDetail(id) {
         </div>
         <div class="detail-desc"><h3>房源描述</h3><p>${escHtml(h.description || '暂无描述')}</p></div>
         ${(h.facilities || []).length ? `<div class="detail-facilities"><h3>配套设施</h3><div>${h.facilities.map(f => `<span>${escHtml(f)}</span>`).join('')}</div></div>` : ''}
-        <button class="btn-book" onclick="bookHouse(${h.id})">预约看房</button>
+        <div class="detail-actions">
+            <button class="btn-book" onclick="bookHouse(${h.id})">预约看房</button>
+        </div>
+        <div class="inquiry-section">
+            <h3>房源咨询</h3>
+            <div class="inquiry-form">
+                <input type="text" id="inquiryInput" placeholder="有问题？先问房东...">
+                <button class="btn-inquiry" onclick="submitInquiry(${h.id})">提问</button>
+            </div>
+            <div id="inquiryList"></div>
+        </div>
     `;
+    loadInquiries(id);
     showModal('houseDetailModal');
+}
+
+async function submitInquiry(houseId) {
+    try {
+        await api('/auth/me');
+    } catch {
+        showModal('loginModal');
+        return;
+    }
+    const input = document.getElementById('inquiryInput');
+    const content = input.value.trim();
+    if (!content) return;
+    await api('/api/inquiries/' + houseId, {
+        method: 'POST',
+        body: JSON.stringify({ content })
+    });
+    showToast('留言成功');
+    input.value = '';
+    loadInquiries(houseId);
+}
+
+async function loadInquiries(houseId) {
+    const data = await api('/api/inquiries/' + houseId);
+    const el = document.getElementById('inquiryList');
+    if (!data.length) {
+        el.innerHTML = '<p style="color:var(--color-text-muted);font-size:13px;padding:8px 0">暂无留言</p>';
+        return;
+    }
+    el.innerHTML = data.map(i => `
+        <div class="inquiry-item">
+            <div class="inquiry-q">
+                <strong>${escHtml(i.username)}</strong>
+                <span style="color:var(--color-text-muted);font-size:12px">${i.created_at || ''}</span>
+                <p>${escHtml(i.content)}</p>
+            </div>
+            ${i.reply ? `<div class="inquiry-a"><strong>房东回复</strong><p>${escHtml(i.reply)}</p></div>` : ''}
+        </div>
+    `).join('');
 }
 
 function bookHouse(houseId) {
@@ -201,51 +308,72 @@ async function loadMyAppointments() {
                     <p class="apt-meta">💰 ${a.house_price?.toLocaleString()}元/月</p>
                 </div>
                 <div class="apt-detail">
-                    <div class="apt-detail-row">
-                        <span class="apt-label">预约时间</span>
-                        <span>${a.appointment_time}</span>
-                    </div>
-                    <div class="apt-detail-row">
-                        <span class="apt-label">联系人</span>
-                        <span>${escHtml(a.contact_name)}</span>
-                    </div>
-                    <div class="apt-detail-row">
-                        <span class="apt-label">联系电话</span>
-                        <span>${escHtml(a.contact_phone)}</span>
-                    </div>
+                    <div class="apt-detail-row"><span class="apt-label">预约时间</span><span>${a.appointment_time}</span></div>
+                    <div class="apt-detail-row"><span class="apt-label">联系人</span><span>${escHtml(a.contact_name)}</span></div>
+                    <div class="apt-detail-row"><span class="apt-label">联系电话</span><span>${escHtml(a.contact_phone)}</span></div>
                     ${a.message ? `<div class="apt-detail-row"><span class="apt-label">留言</span><span>${escHtml(a.message)}</span></div>` : ''}
                 </div>
             </div>
             <div class="apt-status-bar">
-                <span class="status-badge status-${a.status}">
-                    ${STATUS_MAP[a.status] || a.status}
-                </span>
+                <span class="status-badge status-${a.status}">${STATUS_MAP[a.status] || a.status}</span>
                 <span class="apt-time">提交于 ${a.created_at || ''}</span>
             </div>
         </div>
     `).join('');
 }
 
+async function showFavorites() {
+    try {
+        await api('/auth/me');
+    } catch {
+        showModal('loginModal');
+        return;
+    }
+    const data = await api('/api/favorites');
+    document.getElementById('mainContent').style.display = 'none';
+    document.getElementById('appointments-section').style.display = 'none';
+    const el = document.getElementById('favorites-section');
+    el.style.display = 'block';
+    if (!data.length) {
+        el.querySelector('.fav-list').innerHTML = '<div class="empty-state"><p class="empty-icon">❤</p><p>还没有收藏的房源</p></div>';
+        return;
+    }
+    el.querySelector('.fav-list').innerHTML = data.map(h => {
+        const img = getHouseImage(h);
+        const bgStyle = img
+            ? `background-image:url('${escHtml(img)}');background-size:cover;background-position:center`
+            : `background:linear-gradient(135deg,${getGradient(h.id)})`;
+        const icon = img ? '' : houseIcons[h.id % houseIcons.length];
+        return `
+        <div class="house-card" onclick="showHouseDetail(${h.id})">
+            <div class="house-img" style="${bgStyle}">${icon}
+                <div class="price-tag">${h.price.toLocaleString()}<small> 元/月</small></div>
+            </div>
+            <div class="house-info">
+                <h3>${escHtml(h.title)}</h3>
+                <p class="address">📍 ${escHtml(h.address)}</p>
+                <div class="house-tags">
+                    ${h.house_type ? `<span>${escHtml(h.house_type)}</span>` : ''}
+                    ${h.area ? `<span>${h.area}㎡</span>` : ''}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
 function initPricePresets() {
     document.querySelectorAll('.price-preset').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.getElementById('filterMinPrice').value =
-                btn.dataset.min || '';
-            document.getElementById('filterMaxPrice').value =
-                btn.dataset.max || '';
-            document.querySelectorAll('.price-preset').forEach(
-                b => b.classList.remove('active')
-            );
+            document.getElementById('filterMinPrice').value = btn.dataset.min || '';
+            document.getElementById('filterMaxPrice').value = btn.dataset.max || '';
+            document.querySelectorAll('.price-preset').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             searchHouses();
         });
     });
-
     ['filterMinPrice', 'filterMaxPrice'].forEach(id => {
         document.getElementById(id).addEventListener('input', () => {
-            document.querySelectorAll('.price-preset').forEach(
-                b => b.classList.remove('active')
-            );
+            document.querySelectorAll('.price-preset').forEach(b => b.classList.remove('active'));
             searchHouses();
         });
     });
@@ -254,6 +382,7 @@ function initPricePresets() {
 function showSection(id) {
     document.getElementById('mainContent').style.display = 'none';
     document.getElementById('appointments-section').style.display = 'none';
+    document.getElementById('favorites-section').style.display = 'none';
     document.getElementById(id).style.display = 'block';
     if (id === 'appointments-section') loadMyAppointments();
 }
@@ -272,6 +401,7 @@ async function loadHouseTypes() {
 function searchHouses() {
     document.getElementById('mainContent').style.display = 'block';
     document.getElementById('appointments-section').style.display = 'none';
+    document.getElementById('favorites-section').style.display = 'none';
     loadHouses(1);
 }
 
@@ -281,21 +411,15 @@ function resetFilters() {
     document.getElementById('filterMaxPrice').value = '';
     document.getElementById('filterRooms').value = '';
     document.getElementById('filterType').value = '';
-    document.querySelectorAll('.price-preset').forEach(
-        b => b.classList.remove('active')
-    );
+    document.querySelectorAll('.price-preset').forEach(b => b.classList.remove('active'));
     loadHouses(1);
 }
 
 function showModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
 
-function toggleMobileNav() {
-    document.getElementById('navLinks').classList.toggle('open');
-}
-function closeMobileNav() {
-    document.getElementById('navLinks').classList.remove('open');
-}
+function toggleMobileNav() { document.getElementById('navLinks').classList.toggle('open'); }
+function closeMobileNav() { document.getElementById('navLinks').classList.remove('open'); }
 
 document.querySelectorAll('.modal').forEach(m => {
     m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });

@@ -1,4 +1,4 @@
-let housesPage = 1, usersPage = 1, aptPage = 1;
+let housesPage = 1, usersPage = 1, aptPage = 1, inqPage = 1;
 
 document.addEventListener('DOMContentLoaded', () => {
     checkAdminAuth();
@@ -30,6 +30,7 @@ function initTabs() {
             if (tabName === 'houses') loadAdminHouses();
             if (tabName === 'users') loadUsers();
             if (tabName === 'appointments') loadAdminAppointments();
+            if (tabName === 'inquiries') loadAdminInquiries();
         });
     });
 }
@@ -90,6 +91,7 @@ function showHouseForm(house) {
     document.getElementById('hStatus').value = house ? house.status : 'available';
     document.getElementById('hDescription').value = house ? house.description || '' : '';
     document.getElementById('hFacilities').value = house ? (house.facilities || []).join(', ') : '';
+    document.getElementById('hImages').value = house ? (house.images || []).join(', ') : '';
 }
 
 function hideHouseForm() {
@@ -117,6 +119,7 @@ async function saveHouse(e) {
         decoration: document.getElementById('hDecoration').value,
         description: document.getElementById('hDescription').value,
         facilities: document.getElementById('hFacilities').value.split(',').map(s => s.trim()).filter(Boolean),
+        images: document.getElementById('hImages').value.split(',').map(s => s.trim()).filter(Boolean),
         status: document.getElementById('hStatus').value
     };
 
@@ -224,4 +227,39 @@ async function updateAptStatus(id, status) {
 
 function adminLogout() {
     fetch('/auth/logout', { method: 'POST' }).then(() => window.location.href = '/');
+}
+
+async function loadAdminInquiries(page) {
+    if (page !== undefined) inqPage = page;
+    const data = await api('/admin/api/inquiries?page=' + inqPage);
+    const inquiries = data.items;
+    const el = document.getElementById('adminInquiriesList');
+    if (!data.total) {
+        el.innerHTML = '<p style="color:var(--color-text-muted);padding:20px">暂无留言</p>';
+        return;
+    }
+    el.innerHTML = `<table class="data-table">
+        <thead><tr><th>ID</th><th>用户</th><th>房源</th><th>留言</th><th>时间</th><th>回复</th><th>操作</th></tr></thead>
+        <tbody>${inquiries.map(i => `
+            <tr>
+                <td>${i.id}</td>
+                <td>${escHtml(i.username)}</td>
+                <td>${escHtml(i.house_title)}</td>
+                <td>${escHtml(i.content)}</td>
+                <td>${i.created_at || '-'}</td>
+                <td>${i.reply ? escHtml(i.reply) : '<span style="color:var(--color-text-muted)">未回复</span>'}</td>
+                <td>
+                    <button class="btn-sm btn-edit" onclick="replyInquiry(${i.id}, '${escHtml(i.reply || '').replace(/'/g, "\\'")}')">回复</button>
+                </td>
+            </tr>
+        `).join('')}</tbody>
+    </table>` + renderPagination(data, 'loadAdminInquiries');
+}
+
+async function replyInquiry(inqId, currentReply) {
+    const reply = prompt('回复内容：', currentReply);
+    if (reply === null || !reply.trim()) return;
+    await api(`/admin/api/inquiries/${inqId}/reply`, { method: 'PUT', body: JSON.stringify({ reply }) });
+    showToast('回复成功');
+    loadAdminInquiries();
 }

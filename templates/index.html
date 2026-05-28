@@ -15,6 +15,7 @@
             </button>
             <div class="nav-links" id="navLinks">
                 <a href="/" class="active">首页</a>
+                <a href="#" onclick="showFavorites();closeMobileNav()">我的收藏</a>
                 <a href="#" onclick="showSection('appointments-section');closeMobileNav()">我的预约</a>
                 <div class="user-menu" id="userMenu">
                     <span id="navUser"></span>
@@ -86,6 +87,13 @@
             <button class="btn-back" onclick="showSection('mainContent')">← 返回房源列表</button>
         </div>
         <div id="appointmentsList"></div>
+    </section>
+    <section class="container" id="favorites-section" style="display:none">
+        <div class="section-title">
+            <h2>我的收藏</h2>
+            <button class="btn-back" onclick="showSection('mainContent')">← 返回房源列表</button>
+        </div>
+        <div class="fav-list houses-grid"></div>
     </section>
 
     <div id="houseDetailModal" class="modal">
