@@ -25,48 +25,44 @@ async function checkAuth() {
                 document.querySelector('.nav-links').insertBefore(link, document.getElementById('userMenu'));
             }
         }
-    } catch {}
+    } catch {
+        // 未登录状态，静默忽略
+    }
 }
 
 async function login(e) {
     e.preventDefault();
-    try {
-        const data = await api('/auth/login', {
-            method: 'POST',
-            body: JSON.stringify({
-                username: document.getElementById('loginUsername').value,
-                password: document.getElementById('loginPassword').value
-            })
-        });
-        showToast(data.message);
-        closeModal('loginModal');
-        checkAuth();
-    } catch {}
+    const data = await api('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+            username: document.getElementById('loginUsername').value,
+            password: document.getElementById('loginPassword').value
+        })
+    });
+    showToast(data.message);
+    closeModal('loginModal');
+    checkAuth();
 }
 
 async function register(e) {
     e.preventDefault();
-    try {
-        const data = await api('/auth/register', {
-            method: 'POST',
-            body: JSON.stringify({
-                username: document.getElementById('regUsername').value,
-                password: document.getElementById('regPassword').value,
-                phone: document.getElementById('regPhone').value,
-                email: document.getElementById('regEmail').value
-            })
-        });
-        showToast(data.message);
-        closeModal('registerModal');
-        showModal('loginModal');
-    } catch {}
+    const data = await api('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+            username: document.getElementById('regUsername').value,
+            password: document.getElementById('regPassword').value,
+            phone: document.getElementById('regPhone').value,
+            email: document.getElementById('regEmail').value
+        })
+    });
+    showToast(data.message);
+    closeModal('registerModal');
+    showModal('loginModal');
 }
 
 async function logout() {
-    try {
-        await api('/auth/logout', { method: 'POST' });
-        location.reload();
-    } catch {}
+    await api('/auth/logout', { method: 'POST' });
+    location.reload();
 }
 
 async function loadHouses(page = 1) {
@@ -91,7 +87,7 @@ async function loadHouses(page = 1) {
 function renderHouses(houses) {
     const grid = document.getElementById('housesGrid');
     if (!houses.length) {
-        grid.innerHTML = '<div style="text-align:center;padding:60px;color:#999;grid-column:1/-1"><p style="font-size:48px;margin-bottom:16px">🔍</p><p>暂无符合条件的房源</p></div>';
+        grid.innerHTML = '<div style="text-align:center;padding:60px;color:var(--color-text-muted);grid-column:1/-1"><p style="font-size:48px;margin-bottom:16px">🔍</p><p>暂无符合条件的房源</p></div>';
         return;
     }
     grid.innerHTML = houses.map(h => `
@@ -170,43 +166,39 @@ function bookHouse(houseId) {
 
 async function submitAppointment(e) {
     e.preventDefault();
-    try {
-        const data = await api('/api/appointments', {
-            method: 'POST',
-            body: JSON.stringify({
-                house_id: parseInt(document.getElementById('aptHouseId').value),
-                contact_name: document.getElementById('aptName').value,
-                contact_phone: document.getElementById('aptPhone').value,
-                appointment_time: document.getElementById('aptTime').value,
-                message: document.getElementById('aptMessage').value
-            })
-        });
-        showToast(data.message);
-        closeModal('appointmentModal');
-        document.getElementById('appointmentForm').reset();
-    } catch {}
+    const data = await api('/api/appointments', {
+        method: 'POST',
+        body: JSON.stringify({
+            house_id: parseInt(document.getElementById('aptHouseId').value),
+            contact_name: document.getElementById('aptName').value,
+            contact_phone: document.getElementById('aptPhone').value,
+            appointment_time: document.getElementById('aptTime').value,
+            message: document.getElementById('aptMessage').value
+        })
+    });
+    showToast(data.message);
+    closeModal('appointmentModal');
+    document.getElementById('appointmentForm').reset();
 }
 
 async function loadMyAppointments() {
-    try {
-        const data = await api('/api/appointments');
-        const el = document.getElementById('appointmentsList');
-        if (!data.length) {
-            el.innerHTML = '<p style="color:#999;padding:20px">暂无预约记录</p>';
-            return;
-        }
-        el.innerHTML = data.map(a => `
-            <div class="appointment-card">
-                <div class="appointment-info">
-                    <h4>${escHtml(a.house_title)}</h4>
-                    <p>📍 ${escHtml(a.house_address)} | ${a.house_price?.toLocaleString()}元/月</p>
-                    <p>预约时间：${a.appointment_time} | 联系电话：${escHtml(a.contact_phone)}</p>
-                    ${a.message ? `<p>留言：${escHtml(a.message)}</p>` : ''}
-                </div>
-                <span class="status-badge status-${a.status}">${STATUS_MAP[a.status] || a.status}</span>
+    const data = await api('/api/appointments');
+    const el = document.getElementById('appointmentsList');
+    if (!data.length) {
+        el.innerHTML = '<p style="color:var(--color-text-muted);padding:20px">暂无预约记录</p>';
+        return;
+    }
+    el.innerHTML = data.map(a => `
+        <div class="appointment-card">
+            <div class="appointment-info">
+                <h4>${escHtml(a.house_title)}</h4>
+                <p>📍 ${escHtml(a.house_address)} | ${a.house_price?.toLocaleString()}元/月</p>
+                <p>预约时间：${a.appointment_time} | 联系电话：${escHtml(a.contact_phone)}</p>
+                ${a.message ? `<p>留言：${escHtml(a.message)}</p>` : ''}
             </div>
-        `).join('');
-    } catch {}
+            <span class="status-badge status-${a.status}">${STATUS_MAP[a.status] || a.status}</span>
+        </div>
+    `).join('');
 }
 
 function showSection(id) {
