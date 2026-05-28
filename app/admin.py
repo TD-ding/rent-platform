@@ -1,5 +1,7 @@
+import csv
+import io
 import json
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, Response
 from . import get_db
 from .auth import admin_required
 
@@ -243,3 +245,116 @@ def update_appointment_status(apt_id):
     )
     db.commit()
     return jsonify({'message': '状态已更新'})
+
+
+# --- CSV Export ---
+
+@admin_bp.route('/api/export/users', methods=['GET'])
+@admin_required
+def export_users():
+    db = get_db()
+    users = db.execute(
+        'SELECT id, username, role, phone, email, created_at '
+        'FROM users ORDER BY created_at DESC'
+    ).fetchall()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(['ID', '用户名', '角色', '手机', '邮箱', '注册时间'])
+    for u in users:
+        writer.writerow([
+            u['id'], u['username'], u['role'],
+            u['phone'] or '', u['email'] or '', u['created_at']
+        ])
+    buf.seek(0)
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition': 'attachment; filename=users.csv'
+        }
+    )
+
+
+@admin_bp.route('/api/export/appointments', methods=['GET'])
+@admin_required
+def export_appointments():
+    db = get_db()
+    appointments = db.execute('''
+        SELECT a.id, u.username, h.title as house_title,
+               h.address as house_address,
+               a.contact_name, a.contact_phone,
+               a.appointment_time, a.status, a.message, a.created_at
+        FROM appointments a
+        JOIN houses h ON a.house_id = h.id
+        JOIN users u ON a.user_id = u.id
+        ORDER BY a.created_at DESC
+    ''').fetchall()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow([
+        'ID', '用户', '房源', '地址', '联系人', '电话',
+        '预约时间', '状态', '留言', '提交时间'
+    ])
+    for a in appointments:
+        status_map = {
+            'pending': '待确认', 'confirmed': '已确认',
+            'cancelled': '已取消', 'completed': '已完成'
+        }
+        writer.writerow([
+            a['id'], a['username'], a['house_title'],
+            a['house_address'], a['contact_name'],
+            a['contact_phone'], a['appointment_time'],
+            status_map.get(a['status'], a['status']),
+            a['message'] or '', a['created_at']
+        ])
+    buf.seek(0)
+    return Response(
+        buf.getvalue(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition': 'attachment; filename=appointments.csv'
+        }
+    )
+
+
+# --- Inquiries management ---
+
+@admin_bp.route('/api/inquiries', methods=['GET'])
+@admin_required
+def list_inquiries():
+    db = get_db()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 15, type=int)
+    offset = (page - 1) * per_page
+
+    total = db.execute('SELECT COUNT(*) FROM inquiries').fetchone()[0]
+    rows = db.execute('''
+        SELECT i.*, u.username, h.title as house_title
+        FROM inquiries i
+        JOIN users u ON i.user_id = u.id
+        JOIN houses h ON i.house_id = h.id
+        ORDER BY i.created_at DESC
+        LIMIT ? OFFSET ?
+    ''', (per_page, offset)).fetchall()
+
+    return jsonify({
+        'items': [dict(r) for r in rows],
+        'total': total, 'page': page,
+        'pages': (total + per_page - 1) // per_page
+    })
+
+
+@admin_bp.route('/api/inquiries/<int:inq_id>/reply', methods=['PUT'])
+@admin_required
+def reply_inquiry(inq_id):
+    data = request.get_json()
+    reply = data.get('reply', '').strip()
+    if not reply:
+        return jsonify({'error': '请输入回复内容'}), 400
+    db = get_db()
+    db.execute(
+        'UPDATE inquiries SET reply = ? WHERE id = ?',
+        (reply, inq_id)
+    )
+    db.commit()
+    return jsonify({'message': '回复成功'})

@@ -3,6 +3,12 @@ from flask import Blueprint, request, jsonify, session, render_template
 from . import get_db
 from .auth import login_required
 
+
+def _house_img_url(house):
+    images = json.loads(house.get('images', '[]'))
+    return images[0] if images else None
+
+
 main_bp = Blueprint('main', __name__)
 
 
@@ -128,3 +134,104 @@ def my_appointments():
         ORDER BY a.created_at DESC
     ''', (session['user_id'],)).fetchall()
     return jsonify([dict(a) for a in appointments])
+
+
+# --- Favorites ---
+
+@main_bp.route('/api/favorites', methods=['GET'])
+@login_required
+def my_favorites():
+    db = get_db()
+    rows = db.execute('''
+        SELECT h.* FROM favorites f
+        JOIN houses h ON f.house_id = h.id
+        WHERE f.user_id = ?
+        ORDER BY f.created_at DESC
+    ''', (session['user_id'],)).fetchall()
+    result = []
+    for h in rows:
+        house = dict(h)
+        house['facilities'] = json.loads(house.get('facilities', '[]'))
+        house['images'] = json.loads(house.get('images', '[]'))
+        result.append(house)
+    return jsonify(result)
+
+
+@main_bp.route('/api/favorites/<int:house_id>', methods=['POST'])
+@login_required
+def add_favorite(house_id):
+    db = get_db()
+    house = db.execute(
+        'SELECT id FROM houses WHERE id = ?', (house_id,)
+    ).fetchone()
+    if not house:
+        return jsonify({'error': '房源不存在'}), 404
+    try:
+        db.execute(
+            'INSERT INTO favorites (user_id, house_id) VALUES (?, ?)',
+            (session['user_id'], house_id)
+        )
+        db.commit()
+    except Exception:
+        pass
+    return jsonify({'message': '已收藏'})
+
+
+@main_bp.route('/api/favorites/<int:house_id>', methods=['DELETE'])
+@login_required
+def remove_favorite(house_id):
+    db = get_db()
+    db.execute(
+        'DELETE FROM favorites WHERE user_id = ? AND house_id = ?',
+        (session['user_id'], house_id)
+    )
+    db.commit()
+    return jsonify({'message': '已取消收藏'})
+
+
+@main_bp.route('/api/favorites/check/<int:house_id>', methods=['GET'])
+@login_required
+def check_favorite(house_id):
+    db = get_db()
+    row = db.execute(
+        'SELECT id FROM favorites WHERE user_id = ? AND house_id = ?',
+        (session['user_id'], house_id)
+    ).fetchone()
+    return jsonify({'is_favorite': row is not None})
+
+
+# --- Inquiries ---
+
+@main_bp.route('/api/inquiries/<int:house_id>', methods=['POST'])
+@login_required
+def create_inquiry(house_id):
+    data = request.get_json()
+    content = data.get('content', '').strip()
+    if not content:
+        return jsonify({'error': '请输入留言内容'}), 400
+    db = get_db()
+    house = db.execute(
+        'SELECT id FROM houses WHERE id = ?', (house_id,)
+    ).fetchone()
+    if not house:
+        return jsonify({'error': '房源不存在'}), 404
+    db.execute(
+        'INSERT INTO inquiries (user_id, house_id, content) '
+        'VALUES (?, ?, ?)',
+        (session['user_id'], house_id, content)
+    )
+    db.commit()
+    return jsonify({'message': '留言成功'}), 201
+
+
+@main_bp.route('/api/inquiries/<int:house_id>', methods=['GET'])
+def list_inquiries(house_id):
+    db = get_db()
+    rows = db.execute('''
+        SELECT i.*, u.username
+        FROM inquiries i
+        JOIN users u ON i.user_id = u.id
+        WHERE i.house_id = ?
+        ORDER BY i.created_at DESC
+    ''', (house_id,)).fetchall()
+    return jsonify([dict(r) for r in rows])

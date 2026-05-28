@@ -187,6 +187,8 @@ footer { background: var(--color-text); color: #aaa; text-align: center; padding
     .section-title h2 { font-size: 18px; }
     .apt-card-body { padding: 14px; }
     .apt-detail-row { font-size: 12px; }
+    .inquiry-form { flex-direction: column; }
+    .btn-inquiry { width: 100%; }
 }
 
 @media (max-width: 400px) {
@@ -195,3 +197,24 @@ footer { background: var(--color-text); color: #aaa; text-align: center; padding
     .presets-row { gap: 4px; }
     .price-preset { padding: 4px 8px; font-size: 11px; }
 }
+
+/* Favorite button */
+.fav-btn { position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.85); border: none; border-radius: 50%; width: 34px; height: 34px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; transition: transform 0.2s; }
+.fav-btn:hover { transform: scale(1.15); }
+.fav-btn.fav-active { background: rgba(255,255,255,0.95); }
+.fav-detail { width: auto; border-radius: 20px; padding: 6px 14px; font-size: 14px; }
+
+/* Inquiry section */
+.inquiry-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--color-border-light); }
+.inquiry-section h3 { font-size: 16px; margin-bottom: 12px; }
+.inquiry-form { display: flex; gap: 8px; margin-bottom: 16px; }
+.inquiry-form input { flex: 1; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; outline: none; }
+.inquiry-form input:focus { border-color: var(--color-primary); }
+.btn-inquiry { background: var(--color-primary); color: var(--color-white); border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+.btn-inquiry:hover { background: var(--color-primary-hover); }
+.inquiry-item { margin-bottom: 14px; padding: 12px; background: #f8f8f8; border-radius: 8px; }
+.inquiry-q strong { margin-right: 8px; }
+.inquiry-q p { margin-top: 6px; line-height: 1.6; }
+.inquiry-a { margin-top: 10px; padding: 10px 12px; background: #e3f2fd; border-radius: 6px; }
+.inquiry-a strong { color: #1565c0; }
+.inquiry-a p { margin-top: 4px; line-height: 1.6; }
